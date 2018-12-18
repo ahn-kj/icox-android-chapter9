@@ -17,7 +17,7 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MarkerOptions
+import com.google.maps.android.clustering.ClusterManager
 import kotlinx.android.synthetic.main.activity_main.*
 import org.json.JSONArray
 import org.json.JSONObject
@@ -76,11 +76,24 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
+    // ClusterManager 변수 선언
+    var clusterManager: ClusterManager<MyItem>? = null
+    // ClusterRenderer 변수 선언
+    var clusterRenderer: ClusterRenderer? = null
+
     // 맵 초기화하는 함수
     @SuppressLint("MissingPermission")
     fun initMap() {
         // 맵뷰에서 구글 맵을 불러오는 함수. 컬백함수에서 구글 맵 객체가 전달됨
         mapView.getMapAsync {
+            // ClusterManager 객체 초기화
+            clusterManager = ClusterManager(this, it)
+            clusterRenderer = ClusterRenderer(this, it, clusterManager)
+
+            // OnCameraIdleListener 와 OnMarkerClickListener 를 clusterManager 로 지정
+            it.setOnCameraIdleListener(clusterManager)
+            it.setOnMarkerClickListener(clusterManager)
+
             // 구글맵 멤버 변수에 구글맵 객체 저장
             googleMap = it
             // 현재위치로 이동 버튼 비활성화
@@ -222,6 +235,8 @@ class MainActivity : AppCompatActivity() {
                     addMarkers(array.getJSONObject(i))
                 }
             }
+            // clusterManager 의 클러스터링 실행
+            clusterManager?.cluster()
         }
     }
 
@@ -242,12 +257,21 @@ class MainActivity : AppCompatActivity() {
 
     // 마커를 추가하는 함수
     fun addMarkers(toilet: JSONObject) {
-        googleMap?.addMarker(
-            MarkerOptions()
-                .position(LatLng(toilet.getDouble("Y_WGS84"), toilet.getDouble("X_WGS84")))
-                .title(toilet.getString("FNAME"))
-                .snippet(toilet.getString("ANAME"))
-                .icon(BitmapDescriptorFactory.fromBitmap(bitmap))
+//        googleMap?.addMarker(
+//            MarkerOptions()
+//                .position(LatLng(toilet.getDouble("Y_WGS84"), toilet.getDouble("X_WGS84")))
+//                .title(toilet.getString("FNAME"))
+//                .snippet(toilet.getString("ANAME"))
+//                .icon(BitmapDescriptorFactory.fromBitmap(bitmap))
+//        )
+        // clusterManager 를 이용해 마커 추가
+        clusterManager?.addItem(
+            MyItem(
+                LatLng(toilet.getDouble("Y_WGS84"), toilet.getDouble("X_WGS84")),
+                toilet.getString("FNAME"),
+                toilet.getString("ANAME"),
+                BitmapDescriptorFactory.fromBitmap(bitmap)
+            )
         )
     }
 
